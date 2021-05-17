@@ -1,0 +1,66 @@
+module labM;
+reg [31:0] PCin;
+reg clk, RegDst, RegWrite, ALUSrc;
+
+reg [2:0] op;
+wire [31:0] wd, rd1, rd2, imm, ins, PCp4, z;
+wire [25:0] jTarget;
+wire zero;
+yIF myIF(ins, PCp4, PCin, clk); 
+yID myID(rd1, rd2, imm, jTarget, ins, wd, RegDst, RegWrite, clk); 
+yEX myEx(z, zero, rd1, rd2, imm, op, ALUSrc); 
+yDM myDM(memOut, z, rd2, clk, MemRead, MemWrite); 
+yWB myWB(wb, z, memOut, Mem2Reg); 
+assign wd = z;
+
+initial
+begin
+//------------------------------------Entry point
+	PCin = 128;
+//------------------------------------Run program
+	repeat (11)
+		begin
+//---------------------------------Fetch an ins
+		clk = 1; #1;
+		
+//---------------------------------Set control signals
+		RegDst = 0; RegWrite = 0; ALUSrc = 1; op = 3'b010;
+		// R format
+        if (ins[31:26] == 0)
+        	begin
+                RegDst = 1;
+                RegWrite = 1;
+                ALUSrc = 0;
+            end
+
+            // J format
+            else if (ins[31:26] == 2)
+            begin
+                RegDst = 0;
+                RegWrite = 0;
+                ALUSrc = 1;
+            end
+
+            // I format
+            else
+            begin
+            	RegDst = 0;
+                RegWrite = 1;
+                ALUSrc = 1;
+end
+		
+// Add statements to adjust the above defaults
+
+//---------------------------------Execute the ins
+		clk = 0; #1;
+//---------------------------------View results
+		$display("%h: rd1=%2d rd2=%2d z=%3d zero=%b wb=%2d",  
+         ins, rd1, rd2, z, zero, wb); 
+
+// Add a statement to prepare for the next instruction
+		PCin = PCp4;
+
+	end
+$finish;
+end
+endmodule
